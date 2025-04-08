@@ -28,6 +28,10 @@ function translateCaption() {
   console.log('자막번역 시작');
 }
 
+function stopTranslateCaption() {
+  console.log('자막번역 중단');
+}
+
 function checkUrlAndExecute() {
   const pageChanged = window.location.href !== lastUrl;
   const onDestination = window.location.href.includes(destinationHref);
@@ -41,6 +45,7 @@ function checkUrlAndExecute() {
     }
     if (offDestination) {
       console.log('목적 페이지 탈출. Executing code.');
+      stopTranslateCaption();
     }
   }
   updateLastUrl();
