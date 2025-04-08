@@ -2,55 +2,70 @@ import { sampleFunction } from '@src/sampleFunction';
 
 console.log('content script loaded');
 
-let lastUrl = '';
+let newUrl: string = '';
+let isTranslating = false;
 //@Todo background script 와 중복. 통합 필요.
 const destinationHref = 'learn.deeplearning.ai/courses/';
 
 init();
 
 function init() {
-  checkUrlAndExecute();
+  updateNewUrl(window.location.href);
+  checkUrlAndExecute(newUrl);
   registerEvents();
   // sampleFunction();
 }
 
 function registerEvents() {
-  // @Todo (예: history.replaceState 사용)도 처리해야 하는지 고려해야 합니다.
-  window.addEventListener('popstate', checkUrlAndExecute);
+  const originalPushState = window.history.pushState;
+  const originalReplaceState = window.history.replaceState;
+
+  window.history.pushState = function (...args) {
+    originalPushState.apply(this, args);
+    console.log('originalPushState');
+    updateNewUrl(window.location.href);
+    checkUrlAndExecute(newUrl);
+  };
+
+  window.history.replaceState = function (...args) {
+    originalReplaceState.apply(this, args);
+    console.log('replaceState');
+    updateNewUrl(window.location.href);
+    checkUrlAndExecute(newUrl);
+  };
+
+  // popstate 이벤트 리스너 추가
+  window.addEventListener('popstate', () => {
+    console.log('popstate');
+    updateNewUrl(window.location.href);
+    checkUrlAndExecute(newUrl);
+  });
 }
 
-/**
- * Translates the caption on the page.
- * This function prevents multiple calls by using a flag `isOn`.
- * It sets `isOn` to true to indicate that translation has started and returns immediately if it's already true.
- */
-function translateCaption() {
+function startTranslateCaption() {
   console.log('자막번역 시작');
+  isTranslating = true;
 }
 
 function stopTranslateCaption() {
   console.log('자막번역 중단');
+  isTranslating = false;
 }
 
-function checkUrlAndExecute() {
-  const pageChanged = window.location.href !== lastUrl;
-  const onDestination = window.location.href.includes(destinationHref);
-  const offDestination = lastUrl.includes(destinationHref);
+function checkUrlAndExecute(newUrl: string) {
+  const onDestination = newUrl.includes(destinationHref);
 
-  if (!lastUrl || pageChanged) {
-    // console.log('현재 위치:', window.location.href, '목적 href:', destinationHref);
-    if (onDestination) {
-      console.log('목적 페이지 진입. Executing code.');
-      translateCaption();
-    }
-    if (offDestination) {
-      console.log('목적 페이지 탈출. Executing code.');
-      stopTranslateCaption();
-    }
+  console.log(newUrl);
+  if (onDestination) {
+    console.log('목적 페이지 진입. Executing code.');
+    if (!isTranslating) startTranslateCaption();
+  } else {
+    console.log('목적 페이지 탈출. Executing code.');
+    if (isTranslating) stopTranslateCaption();
   }
-  updateLastUrl();
 }
 
-function updateLastUrl() {
-  lastUrl = window.location.href;
+function updateNewUrl(currentHref: string) {
+  console.log('새 URL: ' + currentHref);
+  newUrl = currentHref;
 }
