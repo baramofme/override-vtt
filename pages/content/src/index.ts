@@ -17,22 +17,16 @@ function init() {
 }
 
 function registerEvents() {
-  const originalPushState = window.history.pushState;
-  const originalReplaceState = window.history.replaceState;
+  // SPA 나 Next.js 사용 페이지에서 pushState, replaceState 몽키패칭이 통하지 않아, 백그라운드에서 webNavigation 이벤트에 대한 리스너 추가
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log(`Message from the background script: ${sender?.tab?.id}`);
+    console.log(request);
 
-  window.history.pushState = function (...args) {
-    originalPushState.apply(this, args);
-    console.log('originalPushState');
-    updateNewUrl(window.location.href);
-    checkUrlAndExecute(newUrl);
-  };
-
-  window.history.replaceState = function (...args) {
-    originalReplaceState.apply(this, args);
-    console.log('replaceState');
-    updateNewUrl(window.location.href);
-    checkUrlAndExecute(newUrl);
-  };
+    if (request.message === 'onDestination' || request.message === 'offDestination') {
+      updateNewUrl(window.location.href);
+      checkUrlAndExecute(newUrl);
+    }
+  });
 
   // popstate 이벤트 리스너 추가
   window.addEventListener('popstate', () => {
